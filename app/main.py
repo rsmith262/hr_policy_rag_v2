@@ -38,3 +38,17 @@ def chat(req: ChatRequest, _: bool = Depends(require_api_key)):
         reply=getattr(ai_msg, "content", str(ai_msg)),
         citations=[Citation(**c) for c in cites]
     )
+
+
+# logging debug steps
+import logging
+from fastapi.responses import JSONResponse
+from fastapi.requests import Request
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logging.exception("Unhandled exception: %s", exc)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+    )
