@@ -6,8 +6,9 @@ from langchain.memory import ConversationBufferMemory
 
 def make_history_getter(redis_url: str | None, ttl_seconds: int) -> Callable[[str], ChatMessageHistory]:
     """Return a function that gives a ChatMessageHistory for a session_id.
-    Uses Redis if redis_url is provided; else falls back to in-process memory (dev only)."""
-    if redis_url:
+    Uses Redis if redis_url is set; else falls back to in-process memory (dev only).
+    """
+    if redis_url and redis_url.strip():  # make sure empty string doesn't try Redis
         def _get(session_id: str):
             return RedisChatMessageHistory(
                 session_id=f"chat:{session_id}",

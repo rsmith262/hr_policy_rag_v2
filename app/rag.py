@@ -67,7 +67,8 @@ rag_chain = (RunnablePassthrough.assign(context_bundle=fetch_context)
              | llm)
 
 # bring in history management
-get_history = make_history_getter(settings.redis_url or None, settings.redis_ttl)
+# Pass settings.redis_url directly (even if empty), memory.py handles fallback
+get_history = make_history_getter(settings.redis_url, settings.redis_ttl)
 mem_chain = wrap_with_history(prompt | llm, get_history)
 
 def answer_with_citations(inputs: Dict[str, Any], session_id: str = "anonymous"):
