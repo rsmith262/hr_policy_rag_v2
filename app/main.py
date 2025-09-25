@@ -47,13 +47,33 @@ mem_chain = wrap_with_history(base_chain, get_history)
 def health():
     return {"status": "ok"}
 
+# @app.post("/chat", response_model=ChatResponse)
+# def chat(req: ChatRequest, _: bool = Depends(require_api_key)):
+#     session_id = req.session_id or "anonymous"
+#     inputs = {"input": req.input}
+
+#     ai_msg, cites = answer_with_citations(inputs, session_id=session_id)
+
+
+#     return ChatResponse(
+#         reply=getattr(ai_msg, "content", str(ai_msg)),
+#         citations=[Citation(**c) for c in cites]
+#     )
+
+######################
+# debugging
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest, _: bool = Depends(require_api_key)):
     session_id = req.session_id or "anonymous"
+    logging.info("Chat request received, session_id=%s, input=%s", session_id, req.input)
+
     inputs = {"input": req.input}
-
-    ai_msg, cites = answer_with_citations(inputs, session_id=session_id)
-
+    try:
+        ai_msg, cites = answer_with_citations(inputs, session_id=session_id)
+        logging.info("Chat response generated successfully")
+    except Exception as e:
+        logging.exception("Error inside answer_with_citations")
+        raise
 
     return ChatResponse(
         reply=getattr(ai_msg, "content", str(ai_msg)),
