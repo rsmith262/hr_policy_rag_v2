@@ -31,8 +31,8 @@ def chat(req: ChatRequest, _: bool = Depends(require_api_key)):
     session_id = req.session_id or "anonymous"
     inputs = {"input": req.input}
 
-    ai_msg, cites = answer_with_citations(inputs)
-    mem_chain.invoke({"input": req.input}, config={"configurable": {"session_id": session_id}})
+    ai_msg, cites = answer_with_citations(inputs, session_id=session_id)
+
 
     return ChatResponse(
         reply=getattr(ai_msg, "content", str(ai_msg)),

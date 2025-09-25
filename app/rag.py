@@ -5,6 +5,7 @@ from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain_community.vectorstores.azuresearch import AzureSearch
 from langchain_core.documents import Document
 from app.config import settings
+from app.memory import make_history_getter, wrap_with_history
 
 # LLM
 llm = AzureChatOpenAI(
@@ -31,12 +32,6 @@ vectorstore = AzureSearch(
     embedding_function=emb.embed_query,  # used for query embeddings
 )
 
-# added debugging
-import logging
-logging.warning(f"Search endpoint: {settings.search_endpoint}")
-logging.warning(f"Search index: {settings.search_index}")
-logging.warning(f"Search key starts with: {settings.search_key[:5]}")
-# End deubugging
 
 retriever = vectorstore.as_retriever(search_type="hybrid", k=4)
 
@@ -71,7 +66,16 @@ rag_chain = (RunnablePassthrough.assign(context_bundle=fetch_context)
              | prompt
              | llm)
 
-def answer_with_citations(inputs: Dict[str, Any]):
-    ai_msg = rag_chain.invoke(inputs)
-    docs = inputs["context_bundle"]["docs"]
+# bring in history management
+get_history = make_history_getter(settings.redis_url or None, settings.redis_ttl)
+mem_chain = wrap_with_history(prompt | llm, get_history)
+
+def answer_with_citations(inputs: Dict[str, Any], session_id: str = "anonymous"):
+    # run through mem_chain so {history} gets injected automatically
+    ai_msg = mem_chain.invoke(
+        {"input": inputs["input"], "context": inputs.get("context", "")},
+        config={"configurable": {"session_id": session_id}}
+    )
+
+    docs = inputs.get("context_bundle", {}).get("docs", [])
     return ai_msg, _cites(docs)
