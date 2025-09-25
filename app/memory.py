@@ -6,22 +6,26 @@ from langchain.memory import ConversationBufferMemory
 
 def make_history_getter(redis_url: str | None, ttl_seconds: int) -> Callable[[str], ChatMessageHistory]:
     """Return a function that gives a ChatMessageHistory for a session_id.
-    Uses Redis if redis_url is set; else falls back to in-process memory (dev only).
-    """
-    if redis_url and redis_url.strip():  # make sure empty string doesn't try Redis
-        def _get(session_id: str):
-            return RedisChatMessageHistory(
-                session_id=f"chat:{session_id}",
-                url=redis_url,
-                ttl=ttl_seconds
-            )
-        return _get
+    Uses Redis if redis_url is valid; else falls back to in-process memory (dev only)."""
+    # Normalize and check that redis_url is valid
+    if redis_url:
+        # Simple validation: must start with redis:// or rediss://
+        if redis_url.startswith("redis://") or redis_url.startswith("rediss://"):
+            def _get(session_id: str):
+                return RedisChatMessageHistory(
+                    session_id=f"chat:{session_id}",
+                    url=redis_url,
+                    ttl=ttl_seconds
+                )
+            return _get
 
+    # fallback in-memory
     _mem = {}
     def _get(session_id: str):
         if session_id not in _mem:
             _mem[session_id] = ChatMessageHistory()
         return _mem[session_id]
+
     return _get
 
 def wrap_with_history(chain, get_history):
