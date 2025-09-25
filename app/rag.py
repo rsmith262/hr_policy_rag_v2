@@ -31,6 +31,13 @@ vectorstore = AzureSearch(
     embedding_function=emb.embed_query,  # used for query embeddings
 )
 
+# added debugging
+import logging
+logging.warning(f"Search endpoint: {settings.search_endpoint}")
+logging.warning(f"Search index: {settings.search_index}")
+logging.warning(f"Search key starts with: {settings.search_key[:5]}")
+# End deubugging
+
 retriever = vectorstore.as_retriever(search_type="hybrid", k=4)
 
 # Prompt
