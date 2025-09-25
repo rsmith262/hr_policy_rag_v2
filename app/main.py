@@ -5,6 +5,15 @@ from app.models import ChatRequest, ChatResponse, Citation
 from app.memory import make_history_getter, wrap_with_history
 from app.rag import answer_with_citations, prompt, llm
 
+########################
+# logging debug steps
+import logging
+from fastapi.responses import JSONResponse
+from fastapi.requests import Request
+
+logging.basicConfig(level=logging.INFO)
+########################
+
 def require_api_key(x_api_key: str | None = Header(default=None)):
     want = settings.api_key
     if want and x_api_key != want:
@@ -39,16 +48,19 @@ def chat(req: ChatRequest, _: bool = Depends(require_api_key)):
         citations=[Citation(**c) for c in cites]
     )
 
-
+########################
 # logging debug steps
-import logging
-from fastapi.responses import JSONResponse
-from fastapi.requests import Request
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logging.exception("Unhandled exception: %s", exc)
+    logging.exception("Unhandled exception")
     return JSONResponse(
         status_code=500,
         content={"detail": str(exc)},
     )
+
+
+@app.get("/boom")
+async def boom():
+    raise RuntimeError("This is a test error")
+########################
