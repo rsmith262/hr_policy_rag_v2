@@ -9,7 +9,7 @@ from app.rag import answer_with_citations, prompt, llm
 # logging debug steps
 import logging
 from fastapi.responses import JSONResponse
-from fastapi.requests import Request
+from fastapi import Request
 
 logging.basicConfig(level=logging.INFO)
 ########################
@@ -21,6 +21,18 @@ def require_api_key(x_api_key: str | None = Header(default=None)):
     return True
 
 app = FastAPI(title="RAG Backend (Azure AI Search)", version="0.1.0")
+
+########################
+# logging debug steps
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logging.exception("Unhandled exception")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+    )
+########################
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,16 +62,6 @@ def chat(req: ChatRequest, _: bool = Depends(require_api_key)):
 
 ########################
 # logging debug steps
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logging.exception("Unhandled exception")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": str(exc)},
-    )
-
-
 @app.get("/boom")
 async def boom():
     raise RuntimeError("This is a test error")
