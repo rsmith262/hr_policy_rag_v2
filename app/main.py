@@ -7,11 +7,15 @@ from app.rag import answer_with_citations, prompt, llm
 
 ########################
 # logging debug steps
-import logging
+import logging, sys
 from fastapi.responses import JSONResponse
 from fastapi import Request
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 ########################
 
 def require_api_key(x_api_key: str | None = Header(default=None)):
