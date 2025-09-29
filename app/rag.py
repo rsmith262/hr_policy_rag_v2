@@ -7,6 +7,9 @@ from langchain_core.documents import Document
 from app.config import settings
 from app.memory import make_history_getter, wrap_with_history
 
+import logging
+logger = logging.getLogger("app")
+
 # LLM
 llm = AzureChatOpenAI(
     azure_endpoint=settings.aoai_endpoint,
@@ -72,11 +75,29 @@ get_history = make_history_getter(settings.redis_url, settings.redis_ttl)
 mem_chain = wrap_with_history(prompt | llm, get_history)
 
 def answer_with_citations(inputs: Dict[str, Any], session_id: str = "anonymous"):
-    # run through mem_chain so {history} gets injected automatically
+    """
+    1) Retrieve context from Azure AI Search
+    2) Generate with prompt+history using that context
+    3) Return citations from the retrieved docs
+    """
+    user_input = inputs.get("input", "")
+
+    # Step 1: retrieve
+    ctx_bundle = fetch_context({"input": user_input})   # -> {"context": str, "docs": List[Document]}
+    ctx_text = ctx_bundle.get("context", "")
+    docs = ctx_bundle.get("docs", [])
+
+    # (optional logging)
+    try:
+        logger.info("Retrieval returned %d docs", len(docs))
+    except Exception:
+        pass
+
+    # Step 2: generate with history + injected context
     ai_msg = mem_chain.invoke(
-        {"input": inputs["input"], "context": inputs.get("context", "")},
-        config={"configurable": {"session_id": session_id}}
+        {"input": user_input, "context": ctx_text},
+        config={"configurable": {"session_id": session_id}},
     )
 
-    docs = inputs.get("context_bundle", {}).get("docs", [])
+    # Step 3: citations from retrieved docs
     return ai_msg, _cites(docs)
