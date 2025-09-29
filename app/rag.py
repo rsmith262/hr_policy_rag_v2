@@ -60,7 +60,7 @@ def _cites(docs: List[Document]) -> list[dict]:
     return out
 
 def fetch_context(inputs: Dict[str, Any]) -> Dict[str, Any]:
-    docs = retriever.get_relevant_documents(inputs["input"])
+    docs = retriever.invoke(inputs["input"])
     return {"context": _join(docs), "docs": docs}
 
 # Build RAG chain
